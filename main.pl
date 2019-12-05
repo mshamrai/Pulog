@@ -58,7 +58,7 @@ create_database([p(name(Name), params(Params), body(Predicates))|T], [p(Functor,
 solve(Goal, Database) :- writeln(Database), writeln(Goal).
 
 :- 
-    phrase_from_file(start(X), 'file.txt'),
+    phrase_from_file(start(X), 'tmp'),
     create_database(X, Database),
     write('pulog> '),
     read(Goal),

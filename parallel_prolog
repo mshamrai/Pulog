@@ -1,4 +1,4 @@
 #!/bin/bash
-cat $1 | tr -d " \t\n\r" > file.txt
+cat $1 | tr -d " \t\n\r" > tmp
 swipl main.pl
-rm file.txt
+rm tmp
