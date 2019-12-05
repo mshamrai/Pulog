@@ -1,0 +1,4 @@
+#!/bin/bash
+cat $1 | tr -d " \t\n\r" > file.txt
+swipl main.pl
+rm file.txt
