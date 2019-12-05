@@ -9,47 +9,58 @@ predicate_or_fact(p(name(Name), params(Params), body(Predicates))) -->
 predicate_or_fact(f(name(Name), params(Params))) --> 
     predicate_call(Name, Params), ".".
 
-predicate_call(Name, Params) --> lower_chars(Name), "(", parameters(Params), ")".
+predicate_call(Name, Params) --> chars(Name), "(", parameters(Params), ")".
 
 predicates_call([pred_call(Name, Params)|T]) --> predicate_call(Name, Params), ",", predicates_call(T).
 predicates_call([pred_call(Name, Params)|_]) --> predicate_call(Name, Params), ".".
 
 parameters([P|T]) --> parameter(P), ",", parameters(T).
 parameters([P|_]) --> parameter(P).
-parameter(a(P)) --> lower_chars(P).
-parameter(t(P)) --> term_name(P).
+parameter(P) --> chars(P).
 
-lower_chars([C|T]) -->
-    lower_char(C), !,
-    lower_chars(T).
-lower_chars([]) -->
+chars([C|T]) -->
+    char(C), !,
+    chars(T).
+chars([]) -->
     [].
-lower_char(C) -->
+char(C) -->
     [C],    
-    { char_type(C, lower)
-    }.
-term_name([C|T]) --> upper_char(C), !, lower_chars(T). 
-upper_char(C) -->
-    [C],
-    { char_type(C, upper)
+    { char_type(C, alnum)
     }.
 
-digits([D|T]) -->
-    digit(D), !,
-    digits(T).
-digits([]) -->
-    [].
+create_functor(Name, Params, Functor) :-
+    atom_codes(AtomName, Name),
+    length(Params, Length),
+    functor(Functor, AtomName, Length),
+    pass_args(Functor, Params, 1).
 
-digit(D) -->
-    [D],
-    { code_type(D, digit)
-    }.
+pass_args(_, [], _).
+pass_args(Functor, [H|T], N) :-
+    atom_codes(Arg, H),
+    arg(N, Functor, Arg),
+    N1 is N + 1,
+    pass_args(Functor, T, N1).
 
-solve(_, X) :- writeln(X).
+pred_call2functor([], []).
+pred_call2functor([pred_call(Name, Params)|T], [Functor|TD]) :-
+    create_functor(Name, Params, Functor),
+    pred_call2functor(T, TD).
+
+create_database([], []).
+create_database([f(name(Name), params(Params))|T], [f(Functor)|TD]) :-
+    create_functor(Name, Params, Functor),
+    create_database(T, TD).
+create_database([p(name(Name), params(Params), body(Predicates))|T], [p(Functor, PredCallFunctors)|TD]) :- 
+    create_functor(Name, Params, Functor),
+    pred_call2functor(Predicates, PredCallFunctors),
+    create_database(T, TD).
+    
+solve(Goal, Database) :- writeln(Database), writeln(Goal).
 
 :- 
     phrase_from_file(start(X), 'file.txt'),
+    create_database(X, Database),
     write('pulog> '),
-    read(I),
-    solve(I, X),
+    read(Goal),
+    solve(Goal, Database),
     halt.
