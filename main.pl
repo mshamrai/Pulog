@@ -91,7 +91,8 @@ uny(X, Y, U) :- var(X), nonvar(Y), eq_eq(X, Y, U), X = Y.
 uny(X, Y, U) :- var(Y), nonvar(X), eq_eq(Y, X, U), Y = X.
 uny(X, Y, U) :- nonvar(X), nonvar(Y), atomic(X), atomic(Y), eq_eq(X, Y, U), X = Y.
 uny(X, Y, U) :- nonvar(X), nonvar(Y), compound(X), compound(Y), uny_term(X, Y, U).
-uny(X, Y, U) :- atom_codes(Y, String), nth0(0, String, First), code_type(First, upper), nonvar(X), eq_eq(Y, X, U). 
+uny(X, Y, U) :- atom_codes(Y, String), nth0(0, String, First), code_type(First, upper), nonvar(X), eq_eq(Y, X, U).
+uny(X, Y, U) :- atom_codes(X, String), nth0(0, String, First), code_type(First, upper), nonvar(Y), eq_eq(X, Y, U).
 
 uny_term(X, Y, U) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N, U).
 mgu_parallel(T1, T2, N, U) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L, L1), flatten(L1, U).
@@ -143,11 +144,14 @@ solve(Goal, Database) :-
     writeln(Candidates),
     parse_candidates(Goal, Database, Candidates).
 
-?- 
+:- use_module(library(statistics)).
+
+:- 
     phrase_from_file(start(X), 'tmp'),
     create_database(X, Database),
-    write('pulog> '),
-    read(Goal),
-    solve(Goal, Database),
-    writeln(Goal),
+    %write('pulog> '),
+    %read(Goal),
+    time(solve(a(x,qq(q),q), Database)),
+    consult("test.pl"),
+    time(a(x,qq(q),q)),
     halt.

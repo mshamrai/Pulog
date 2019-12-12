@@ -1,3 +1,5 @@
 b(x).
 d(x).
-a(X) :- b(X), d(X).
+f(qq(q)).
+g(qq(q)).
+a(X, Y, Z) :- b(X), d(X), f(qq(Z)), g(Y), f(Y).
