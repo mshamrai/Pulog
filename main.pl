@@ -85,22 +85,50 @@ is_same_args(T1, T2, ArgsCount, N) :-
     is_same_args(T1, T2, ArgsCount, N1).
 is_same_args(_, _, N, N).
 
-uny(X, Y) :- var(X), var(Y), X = Y.
-uny(X, Y) :- var(X), nonvar(Y), X = Y.
-uny(X, Y) :- var(Y), nonvar(X), Y = X.
-uny(X, Y) :- nonvar(X), nonvar(Y), atomic(X), atomic(Y), X = Y.
-uny(X, Y) :- nonvar(X), nonvar(Y), compound(X), compound(Y), uny_term(X, Y).
+eq_eq(X, Y, eq(X, Y)).
+uny(X, Y, U) :- var(X), var(Y), eq_eq(X, Y, U), X = Y.
+uny(X, Y, U) :- var(X), nonvar(Y), eq_eq(X, Y, U), X = Y.
+uny(X, Y, U) :- var(Y), nonvar(X), eq_eq(Y, X, U), Y = X.
+uny(X, Y, U) :- nonvar(X), nonvar(Y), atomic(X), atomic(Y), eq_eq(X, Y, U), X = Y.
+uny(X, Y, U) :- nonvar(X), nonvar(Y), compound(X), compound(Y), uny_term(X, Y, U).
+uny(X, Y, U) :- atom_codes(Y, String), nth0(0, String, First), code_type(First, upper), nonvar(X), eq_eq(Y, X, U). 
 
-uny_term(X, Y) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N).
-mgu_parallel(T1, T2, N) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L).
-uny_arg(X, Y, N) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY).
+uny_term(X, Y, U) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N, U).
+mgu_parallel(T1, T2, N, U) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L, L1), flatten(L1, U).
+uny_arg(X, Y, N, U) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY, U).
 
+substitute_args(Term, N, Old, New, NewTerm) :- 
+    arg(N, Term, Old), 
+    copy_term(Term, NewTerm), 
+    setarg(N, NewTerm, New).
+substitute_args(Term, N, Old, _, Term) :- \+ arg(N, Term, Old).
+substitute_args_iter(Term, Old, New, N, Res) :-
+    N > 0,
+    substitute_args(Term, N, Old, New, NewTerm),
+    N1 is N - 1,
+    substitute_args_iter(NewTerm, Old, New, N1, Res).
+substitute_args_iter(Term, _, _, 0, Term).
+substitute_args(Term, Old, New, NewTerm) :-
+    compound(Term),
+    functor(Term, _, N),
+    substitute_args_iter(Term, Old, New, N, NewTerm).
+substitute([], _, _, []).
+substitute([O|T0], Old, New, [V|T]) :-
+    substitute_args(O, Old, New, V),
+	substitute(T0, Old, New, T).
+
+substitute_all([], X, X).
+substitute_all([eq(L, R)|T], OldList, NewList1) :-
+    substitute(OldList, L, R, NewList),
+    substitute_all(T, NewList, NewList1).
+    
 
 parse_candidates(Goal, _, [f(H)|_]) :-
-    uny(Goal, H).
+    uny(Goal, H, _).
 parse_candidates(Goal, Database, [p(L, R)|_]) :-
-    uny(Goal, L),
-    solves(R, Database).
+    uny(Goal, L, U),
+    substitute_all(U, R, R1),
+    solves(R1, Database).
 parse_candidates(Goal, Database, [_|T]) :-
     parse_candidates(Goal, Database, T).
 parse_candidates(_, _, []) :- fail.
@@ -111,8 +139,6 @@ solves([H|T], Database) :-
 solves([], _).
 
 solve(Goal, Database) :- 
-    writeln(Goal), 
-    writeln(Database),
     search_db(Goal, Database, Candidates),
     writeln(Candidates),
     parse_candidates(Goal, Database, Candidates).
