@@ -86,31 +86,14 @@ is_same_args(T1, T2, ArgsCount, N) :-
 is_same_args(_, _, N, N).
 
 uny(X, Y) :- var(X), var(Y), X = Y.
-uny(X, Y) :- var(X), nonvar(Y), not_occurs_in(X, Y), X = Y.
-uny(X, Y) :- var(Y), nonvar(X), not_occurs_in(Y, X), Y = X.
+uny(X, Y) :- var(X), nonvar(Y), X = Y.
+uny(X, Y) :- var(Y), nonvar(X), Y = X.
 uny(X, Y) :- nonvar(X), nonvar(Y), atomic(X), atomic(Y), X = Y.
 uny(X, Y) :- nonvar(X), nonvar(Y), compound(X), compound(Y), uny_term(X, Y).
 
 uny_term(X, Y) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N).
 mgu_parallel(T1, T2, N) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L).
 uny_arg(X, Y, N) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY).
-
-
-not_occurs_in(N, X, Y) :- 
-    N > 0, 
-    arg(N, Y, A), 
-    not_occurs_in(X, A),
-    N1 is N - 1, 
-    not_occurs_in(N1, X, Y).
-not_occurs_in(0, _, _).
-
-not_occurs_in(X, Y) :- var(Y), X \== Y.
-not_occurs_in(_, Y) :- nonvar(Y), atomic(Y).
-not_occurs_in(X, Y) :- 
-    nonvar(Y), 
-    compound(Y), 
-    functor(Y, _, N),
-    not_occurs_in(N, X, Y).
 
 
 parse_candidates(Goal, _, [f(H)|_]) :-
