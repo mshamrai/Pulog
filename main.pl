@@ -124,25 +124,26 @@ substitute_all([eq(L, R)|T], OldList, NewList1) :-
     substitute_all(T, NewList, NewList1).
     
 
-parse_candidates(Goal, _, [f(H)|_]) :-
-    uny(Goal, H, _).
-parse_candidates(Goal, Database, [p(L, R)|_]) :-
-    uny(Goal, L, U),
-    substitute_all(U, R, R1),
+parse_candidates(Goal, _, [f(H)|_], Substitution) :-
+    uny(Goal, H, Substitution).
+parse_candidates(Goal, Database, [p(L, R)|_], Substitution) :-
+    uny(Goal, L, Substitution),
+    substitute_all(Substitution, R, R1),
     solves(R1, Database).
-parse_candidates(Goal, Database, [_|T]) :-
-    parse_candidates(Goal, Database, T).
-parse_candidates(_, _, []) :- fail.
+parse_candidates(Goal, Database, [_|T], Substitution) :-
+    parse_candidates(Goal, Database, T, Substitution).
+parse_candidates(_, _, [], _) :- fail.
 
 solves([H|T], Database) :-
-    solve(H, Database),
-    solves(T, Database).
+    solve(H, Database, U),
+    substitute_all(U, T, T1),
+    solves(T1, Database).
 solves([], _).
 
-solve(Goal, Database) :- 
+solve(Goal, Database, Substitution) :- 
     search_db(Goal, Database, Candidates),
     writeln(Candidates),
-    parse_candidates(Goal, Database, Candidates).
+    parse_candidates(Goal, Database, Candidates, Substitution).
 
 :- use_module(library(statistics)).
 
@@ -151,7 +152,7 @@ solve(Goal, Database) :-
     create_database(X, Database),
     %write('pulog> '),
     %read(Goal),
-    time(solve(a(x,qq(q),q), Database)),
+    time(solve(a(x), Database, _)),
     consult("test.pl"),
-    time(a(x,qq(q),q)),
+    time(a(x)),
     halt.
