@@ -94,9 +94,14 @@ uny(X, Y, U) :- nonvar(X), nonvar(Y), compound(X), compound(Y), uny_term(X, Y, U
 uny(X, Y, U) :- atom_codes(Y, String), nth0(0, String, First), code_type(First, upper), nonvar(X), eq_eq(Y, X, U).
 uny(X, Y, U) :- atom_codes(X, String), nth0(0, String, First), code_type(First, upper), nonvar(Y), eq_eq(X, Y, U).
 
-uny_term(X, Y, U) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N, U).
-mgu_parallel(T1, T2, N, U) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L, L1), flatten(L1, U).
-uny_arg(X, Y, N, U) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY, U).
+% uny_term(X, Y, U) :- functor(X, F, N), functor(Y, F, N), mgu_parallel(X, Y, N, U).
+% mgu_parallel(T1, T2, N, U) :- numlist(1, N, L), concurrent_maplist(uny_arg(T1, T2), L, L1), flatten(L1, U).
+% uny_arg(X, Y, N, U) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY, U).
+
+uny_term(X, Y, U) :- functor(X, F, N), functor(Y, F, N), uny_args(N, X, Y, U1), flatten(U1, U).
+uny_args(N, X, Y, [U|T]) :- N > 0, uny_arg(N, X, Y, U), N1 is N - 1, uny_args(N1, X, Y, T).
+uny_args(0, _, _, _).
+uny_arg(N, X, Y, U) :- arg(N, X, ArgX), arg(N, Y, ArgY), uny(ArgX, ArgY, U).
 
 substitute_args(Term, N, Old, New, NewTerm) :- 
     arg(N, Term, Old), 
